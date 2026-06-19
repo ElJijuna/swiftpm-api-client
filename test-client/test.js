@@ -1,11 +1,15 @@
 // Integration test against real APIs.
 // Requires: npm run build first (npm run test:client handles this).
+//
+// SPI search requires a bearer token: set SPI_TOKEN env var to enable it.
+//   SPI_TOKEN=your_token npm run test:client
 import { SwiftPMClient } from '../dist/index.js';
+
+const spiToken = process.env.SPI_TOKEN;
 
 const client = new SwiftPMClient({
   indexUrl: 'https://swiftpackageindex.com',
-  // No registryUrl — Swift Package Registry requires authentication for most endpoints.
-  // We use a public registry-compatible endpoint where available.
+  ...(spiToken && { indexToken: spiToken }),
 });
 
 client.on('request', (e) => {
@@ -14,17 +18,22 @@ client.on('request', (e) => {
 });
 
 async function run() {
-  console.log('\n=== Swift Package Index: search ===');
-  const results = await client.search({ query: 'vapor', page: 1, pageSize: 5 });
-  console.log(`  hasMoreResults: ${results.hasMoreResults}`);
-  for (const pkg of results.results) {
-    console.log(`  - ${pkg.repositoryOwner}/${pkg.packageName} (⭐ ${pkg.stars})`);
-  }
+  if (spiToken) {
+    console.log('\n=== Swift Package Index: search ===');
+    const results = await client.search({ query: 'vapor', page: 1, pageSize: 5 });
+    console.log(`  hasMoreResults: ${results.hasMoreResults}`);
+    for (const pkg of results.results) {
+      console.log(`  - ${pkg.repositoryOwner}/${pkg.packageName} (⭐ ${pkg.stars})`);
+    }
 
-  console.log('\n=== Swift Package Index: search with pagination ===');
-  const page2 = await client.search({ query: 'swift', page: 2, pageSize: 3 });
-  console.log(`  hasMoreResults: ${page2.hasMoreResults}`);
-  console.log(`  results: ${page2.results.length}`);
+    console.log('\n=== Swift Package Index: search with pagination ===');
+    const page2 = await client.search({ query: 'swift', page: 2, pageSize: 3 });
+    console.log(`  hasMoreResults: ${page2.hasMoreResults}`);
+    console.log(`  results: ${page2.results.length}`);
+  } else {
+    console.log('\n[SKIP] SPI search — set SPI_TOKEN env var to enable.');
+    console.log('       SPI_TOKEN=<token> npm run test:client');
+  }
 
   console.log('\nAll integration tests passed.\n');
 }

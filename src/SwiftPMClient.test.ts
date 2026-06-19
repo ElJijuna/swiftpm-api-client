@@ -115,8 +115,9 @@ describe('SwiftPMClient.search()', () => {
     const result = await client.search({ query: 'argument' });
 
     expect(result).toEqual(searchFixture);
-    expect(mockFetch.mock.calls[0][0]).toContain('swiftpackageindex.com');
-    expect(mockFetch.mock.calls[0][0]).toContain('argument');
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url).toContain('swiftpackageindex.com/api/search');
+    expect(url).toContain('argument');
   });
 
   it('includes pagination params', async () => {

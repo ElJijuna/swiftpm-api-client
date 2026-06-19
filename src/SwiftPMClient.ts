@@ -46,6 +46,11 @@ export interface SwiftPMClientOptions {
    * Defaults to `'https://swiftpackageindex.com'`.
    */
   indexUrl?: string;
+  /**
+   * Bearer token for the Swift Package Index API.
+   * Required for `search()`. Obtain one from swiftpackageindex.com account settings.
+   */
+  indexToken?: string;
 }
 
 /**
@@ -83,6 +88,7 @@ export interface SwiftPMClientOptions {
 export class SwiftPMClient {
   private readonly registryUrl: string;
   private readonly indexUrl: string;
+  private readonly indexToken?: string;
   private readonly listeners: Map<
     keyof SwiftPMClientEvents,
     SwiftPMClientEvents[keyof SwiftPMClientEvents][]
@@ -91,6 +97,7 @@ export class SwiftPMClient {
   constructor(options: SwiftPMClientOptions = {}) {
     this.registryUrl = (options.registryUrl ?? DEFAULT_REGISTRY_URL).replace(/\/$/, '');
     this.indexUrl = (options.indexUrl ?? DEFAULT_INDEX_URL).replace(/\/$/, '');
+    this.indexToken = options.indexToken;
   }
 
   /**
@@ -131,12 +138,17 @@ export class SwiftPMClient {
     baseUrl?: string,
     signal?: AbortSignal,
   ): Promise<T> {
-    const base = baseUrl === 'index' ? this.indexUrl : this.registryUrl;
+    const isIndex = baseUrl === 'index';
+    const base = isIndex ? this.indexUrl : this.registryUrl;
     const url = buildUrl(`${base}${path}`, params);
+    const headers: Record<string, string> = {};
+    if (isIndex && this.indexToken) {
+      headers['Authorization'] = `Bearer ${this.indexToken}`;
+    }
     const startedAt = new Date();
     let statusCode: number | undefined;
     try {
-      const response = await fetch(url, { method: 'GET', signal });
+      const response = await fetch(url, { method: 'GET', headers, signal });
       statusCode = response.status;
       if (!response.ok) {
         throw new SwiftPMApiError(response.status, response.statusText);
@@ -244,7 +256,7 @@ export class SwiftPMClient {
    */
   async search(params: SwiftSearchParams, signal?: AbortSignal): Promise<SwiftSearchResult> {
     return this.request<SwiftSearchResult>(
-      '/api/packages/search',
+      '/api/search',
       {
         query: params.query,
         ...(params.page !== undefined && { page: params.page }),
