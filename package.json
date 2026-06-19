@@ -1,6 +1,6 @@
 {
   "name": "swiftpm-api-client",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "TypeScript client for the Swift Package Registry and Swift Package Index APIs",
   "homepage": "https://github.com/ElJijuna/swiftpm-api-client#readme",
   "bugs": {
